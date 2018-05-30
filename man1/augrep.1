@@ -1,0 +1,184 @@
+.\" Copyright (C) 2013-17 Kevin Boone 
+.\" Permission is granted to any individual or institution to use, copy, or
+.\" redistribute this software so long as all of the original files are
+.\" included, and that this copyright notice is retained.
+.\"
+.TH augrep 1 "June 2018"
+.SH NAME
+augrep \- search for text in metadata of audio files 
+.SH SYNOPSIS
+.B augrep 
+.RB [options]\ {pattern}\ {paths...} 
+.PP
+
+.SH EXAMPLE
+
+.B augrep 
+.RB -ir\ '\\\\\\\\bmozart\\\\\\\\b'\ audio 
+
+Find files in the \fIaudio\fR directory and its subdirectories that contain
+the whole word 'mozart', independent of case, in any metadata
+ 
+
+.SH DESCRIPTION
+\fIaugrep\fR is simple utility for searching for regular expressions in the
+metadata ('tags') of a range of audio files. Presently the utility supports
+ID3v2 tags, Vorbis comments, and QuickTime 'meta' atoms; these tags are
+found in MP3, Ogg, FLAC, AAC, M4A, and M4B files, among others. 
+\fIaugrep\fR pays no attention to file extension -- all files are searched
+for all recognized tagging schemes, regardless of name. 
+\fIaugrep\fR may work on some video files as well, if they happen to
+contain recognized tag frames, but it is not designed for that application. 
+
+By default the utility displays the matching file, and any metadata
+entries where the match occurred. It can search directories recursively
+if required. 
+
+.SH "MATCH PATTERN"
+
+The pattern to match is a regular expression, optionally preceded by a
+tag label and an equals sign:
+
+\fIlabel=regex\fR
+
+If no label is given, then all metadata elements are searched. 
+
+The provided label is compared to the label that would be displayed. 
+That is, unless
+the '-n' switch is given, tags that are common to multiple file
+formats (artist, album,...) are converted to human-readable, simplified
+names. It is these names that are used in the comparison. So, when 
+searching MP3 files with ID3v2 tags, the following commands are 
+equivalent:
+
+.B augrep 
+.RB -ir\ -n\ tpe1=ummagumma\ audio 
+
+.B augrep 
+.RB -ir\ title=ummagumma\ audio 
+
+However the second form, with "title=", will match a title tag in any
+audio file that \fIaugrep\fR recognizes -- at least in principle.
+
+The complication is that there is very little consistency in the way
+that tags are used by different content creators and tools. So although,
+for example, a FLAC file might use "TRACKNUMBER" to represent a track
+number, it might also have "tracknumber" or "track" or "track number". 
+MP3 files are usually more consistent about track number, but there is
+no general agreement about how an "album artist" should be tagged. M4A/M4B
+have a clear notion of how to specify and album artist, because of the
+widespread use of Apple iTunes for files of this type; but these files
+often have comments in the "lyr" (lyrics) tag, rather than the "cmt"
+(comment) tag. And so on.
+
+Consequently, the ability to restrict a search to a particular tag
+is not always as useful as it should be.
+
+The list of search labels that \fIshould\fR be common across tag
+formats is: album, artist, album-artist, comment, composer, date, 
+genre, title, track.
+ 
+
+.SH "OPTIONS"
+.TP
+.BI -a,\-\-all
+Include hidden files and directories (names starting with '.') in the search.
+Note that a hidden file or directory will always be searched if it is specified
+explicitly on the command line
+.LP
+.TP
+.BI -f,\-\-file-only
+Show only matching filenames, without reporting the actual metadata that 
+matched 
+.LP
+.TP
+.BI -h,\-\-help
+Show brief usage 
+.LP
+.TP
+.BI -i,\-\-ignore-case
+Ignore the distinction between upper and lower-case text (so far
+as possible)
+.LP
+.TP
+.BI -l,\-\-log {0-4}
+Set the level of logging, from 0 (none) to
+4 (extremely detailed tracing). The default is 2 -- errors and warnings
+.LP
+.TP
+.BI -n,\-\-no-remap
+Do not attempt to re-map tag labels to their common names. So an ID3v2
+track title field would be displayed as "TIT2" rather than "title".
+.TP
+.BI -r,\-\-recursive
+Descend into directories. Note that specifying a single directory on
+the command line without this switch will produce no results, as the
+directory will not be expanded
+.TP
+.BI -R,\-\-dereference-recursive
+Descend into directories, including those that are the target of symbolic
+links. Without this swich, symbolic links are ignored, unless they
+are specified explicitly in the comand line
+.LP
+.TP
+.BI -v,\-\-version
+Show version and copyright information
+.LP
+
+.SH NOTES
+
+If output is to a terminal, \fIaugrep\fR will try to highlight matching
+text in red. Only the first match is highlighed in any particular
+metadata element. In addition, if matching metadata is displayed, the
+matching filename will be highlighted in bold, to distinguish the
+filename from the metadata.  
+
+\fIaugrep\fR is case-sensitive by default. The \fI-i\fR switch enables
+case-insensitive operation, but only for ASCII characters. There is no
+support for Unicode case-insensitivity.
+
+If the original meta-data specifies a text encoding, and that encoding
+is not UTF-8, then \fIaugrep\fR will attempt to convert to UTF-8.
+
+There is no uniformity in tag names across the different formats
+this utility supports. In ID3v2 a track title is usually indicated
+using the "TIT2" tag; Vorbis (Ogg, FLAC) uses "TITLE", while
+M4A/M4B uses "nam". Where there is conceptual uniformity between the
+different formats, \fIaugrep\fR displays a human-readable, common name;
+so "TIT2", "TITLE", and "nam" are all rendered as "title".
+This commonality includes album, artist, track, date, composer, and 
+comment tags. If a tag is not in this set, the original label
+is displayed.  
+
+Be aware that audio files, even from reputable sources, are often badly
+or inconsistently tagged. It is not at all unusual for tags that
+are specified as UTF-8 to be encoded in some Windows-specific extended
+ASCII, or for tags to be used for non-standard purposes. There isn't
+much that \fIaugrep\fR can do to resolve problems like this. Sometimes
+audio files contain multiple different tag blocks, in different formats.
+In such cases, only the first one found is used. A bigger problem is that
+ID3v2 contains so many defined tags, that content creators don't know
+which ones to use. There are at least three different date tags
+-- TYER, TRDA, TORY -- for example. When converting raw tag labels into
+human-readable labels, only one of these can be converted. 
+
+\fIaugrep\fR pays no attention to filename or extension, and will search
+files that any human operator would immediately know are not audio.
+This should not break the utility -- if it does, please log a bug --
+but fruitless file examination still takes time. 
+
+.SH RETURN VALUE
+
+\fIaugrep\fR returns a zero status if the command-line is 
+sufficiently well-formed to carry out a search, regardless whether
+any matches are found.
+
+
+.SH AUTHOR AND LEGAL
+\fIaugrep\fR
+is maintained by Kevin Boone, and is open source under the
+terms of the GNU Public Licence, version 3.0. There is no warranty
+of any kind.
+
+
+.\" end of file
